@@ -14,7 +14,8 @@ export default defineConfig({
       screens: path.resolve(__dirname, './src/screens'),
       styles: path.resolve(__dirname, './src/styles'),
       routes: path.resolve(__dirname, './src/routes'),
-      assets: path.resolve(__dirname, './src/assets')
+      assets: path.resolve(__dirname, './src/assets'),
+      hooks: path.resolve(__dirname, './src/hooks')
     }
   }
 });

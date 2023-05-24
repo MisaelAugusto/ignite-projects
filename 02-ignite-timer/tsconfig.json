@@ -24,7 +24,8 @@
       "screens/*": ["screens/*"],
       "styles/*": ["styles/*"],
       "routes/*": ["routes/*"],
-      "assets/*": ["assets/*"]
+      "assets/*": ["assets/*"],
+      "hooks/*": ["hooks/*"]
     }
   },
   "include": ["src"],

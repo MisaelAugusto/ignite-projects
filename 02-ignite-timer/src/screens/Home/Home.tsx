@@ -1,143 +1,88 @@
-import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { differenceInSeconds } from 'date-fns';
+import { useCallback, useMemo } from 'react';
+import * as zod from 'zod';
+import { FormProvider, useForm } from 'react-hook-form';
 import { HandPalm, Play } from 'phosphor-react';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+import { useCycles } from 'hooks';
 
 import { HomeContainer, StartCountdownButton, StopCountdownButton } from './styles';
 import NewCycleForm from './components/NewCycleForm';
-import Countdown from './components/CountDown';
+import Countdown from './components/Countdown';
 
-interface Cycle {
-  id: string;
-  task: string;
-  minutesAmount: number;
-  startedAt: Date;
-  interruptedAt?: Date;
-  finishedAt?: Date;
-}
+const schema = zod.object({
+  task: zod.string().min(1, 'Informe a tarefa'),
+  minutesAmount: zod
+    .number()
+    .min(1, 'O ciclo precisa ser de no mínimo 5 minutos.')
+    .max(60, 'O ciclo precisa ser de no máximo 60 minutos.')
+});
+
+type FormValues = zod.infer<typeof schema>;
+
+const MIN_TIME_IN_MINUTES = 5;
+
+const defaultValues: FormValues = {
+  task: '',
+  minutesAmount: MIN_TIME_IN_MINUTES
+};
 
 const Home: React.FC = () => {
-  const [cycles, setCycles] = useState<Cycle[]>([]);
-  const [activeCycleId, setActiveCycleId] = useState<string | null>(null);
+  const { activeCycle, addNewCycle, interruptActiveCycle } = useCycles();
 
-  const activeCycle = useMemo(
-    () => cycles.find((cycle) => cycle.id === activeCycleId) ?? null,
-    [activeCycleId, cycles]
+  const methods = useForm<FormValues>({
+    defaultValues,
+    resolver: zodResolver(schema)
+  });
+  const { handleSubmit, reset, watch } = methods;
+
+  const currentTaskDescription = watch('task');
+
+  const activeCycleId = useMemo(() => activeCycle?.id, [activeCycle]);
+
+  const isSubmitButtonDisabled = useMemo(
+    () => currentTaskDescription === '',
+    [currentTaskDescription]
   );
 
-  const { minutes, seconds } = useMemo(() => {
-    let totalSeconds = 0;
-    let currentSeconds = 0;
-
-    if (activeCycle !== null) {
-      totalSeconds = activeCycle.minutesAmount * 60;
-
-      currentSeconds = totalSeconds - amountSecondsPassed;
-    }
-
-    const minutesAmount = Math.floor(currentSeconds / 60);
-    const secondsAmount = currentSeconds % 60;
-
-    return {
-      minutes: String(minutesAmount).padStart(2, '0'),
-      seconds: String(secondsAmount).padStart(2, '0')
-    };
-  }, [activeCycle, amountSecondsPassed]);
-
-  const isSubmitButtonDisabled = useMemo(() => task === '', [task]);
-
-  const handleInterruptCycle = useCallback(() => {
-    setCycles((previousState) =>
-      previousState.map((cycle) => ({
-        ...cycle,
-        ...(cycle.id === activeCycleId && { interruptedAt: new Date() })
-      }))
-    );
-
-    setActiveCycleId(null);
-  }, [activeCycleId]);
-
-  const handleBlurMinutesAmount = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const minutesAmount = Number(event.target.value);
-
-      if (minutesAmount > MAX_TIME_IN_MINUTES) setValue('minutesAmount', MAX_TIME_IN_MINUTES);
-      else if (minutesAmount < MIN_TIME_IN_MINUTES) setValue('minutesAmount', MIN_TIME_IN_MINUTES);
-    },
-    [setValue]
-  );
+  const handleinterruptActiveCycle = useCallback(() => {
+    interruptActiveCycle();
+  }, [interruptActiveCycle]);
 
   const submit = useCallback(
     (values: FormValues) => {
-      const id = String(new Date().getTime());
-
-      const newCycle: Cycle = {
-        id,
+      addNewCycle({
+        id: String(new Date().getTime()),
         ...values,
         startedAt: new Date()
-      };
-
-      setCycles((previousState) => [...previousState, newCycle]);
-      setActiveCycleId(id);
-      setAmountSecondsPassed(0);
+      });
 
       reset();
     },
-    [reset]
+    [addNewCycle, reset]
   );
-
-  useEffect(() => {
-    if (activeCycle) document.title = `${minutes}:${seconds}`;
-    else document.title = 'Ignite Timer';
-  }, [minutes, seconds, activeCycle]);
-
-  useEffect(() => {
-    let interval: number;
-
-    if (activeCycle) {
-      interval = window.setInterval(() => {
-        const totalSeconds = activeCycle.minutesAmount * 60;
-        const secondsDifference = differenceInSeconds(new Date(), activeCycle.startedAt);
-
-        if (secondsDifference >= totalSeconds) {
-          setCycles((previousState) =>
-            previousState.map((cycle) => ({
-              ...cycle,
-              ...(cycle.id === activeCycleId && { finishedAt: new Date() })
-            }))
-          );
-
-          setActiveCycleId(null);
-          clearInterval(interval);
-        }
-
-        setAmountSecondsPassed(secondsDifference);
-      }, 1000);
-    }
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [activeCycle, activeCycleId]);
 
   return (
     <HomeContainer>
-      <form onSubmit={handleSubmit(submit)}>
-        {!activeCycleId && <NewCycleForm />}
+      <FormProvider {...methods}>
+        <form onSubmit={handleSubmit(submit)}>
+          {!activeCycleId && <NewCycleForm />}
 
-        <Countdown />
+          <Countdown />
 
-        {activeCycle ? (
-          <StopCountdownButton onClick={handleInterruptCycle} type="button">
-            <HandPalm size={24} />
-            Interromper
-          </StopCountdownButton>
-        ) : (
-          <StartCountdownButton disabled={isSubmitButtonDisabled} type="submit">
-            <Play size={24} />
-            Começar
-          </StartCountdownButton>
-        )}
-      </form>
+          {activeCycle ? (
+            <StopCountdownButton onClick={handleinterruptActiveCycle} type="button">
+              <HandPalm size={24} />
+              Interromper
+            </StopCountdownButton>
+          ) : (
+            <StartCountdownButton disabled={isSubmitButtonDisabled} type="submit">
+              <Play size={24} />
+              Começar
+            </StartCountdownButton>
+          )}
+        </form>
+      </FormProvider>
     </HomeContainer>
   );
 };

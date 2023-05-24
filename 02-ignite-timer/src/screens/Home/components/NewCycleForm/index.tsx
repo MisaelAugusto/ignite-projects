@@ -1,35 +1,22 @@
-import * as zod from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-
+import { type ChangeEvent, useCallback } from 'react';
 import { FormContainer, MinutesAmountInput, TaskInput } from './styles';
+import { useFormContext } from 'react-hook-form';
 
-const schema = zod.object({
-  task: zod.string().min(1, 'Informe a tarefa'),
-  minutesAmount: zod
-    .number()
-    .min(1, 'O ciclo precisa ser de no mínimo 5 minutos.')
-    .max(60, 'O ciclo precisa ser de no máximo 60 minutos.')
-});
-
-type FormValues = zod.infer<typeof schema>;
-
-const MIN_TIME_IN_MINUTES = 1;
+const MIN_TIME_IN_MINUTES = 5;
 const MAX_TIME_IN_MINUTES = 60;
 
-const defaultValues: FormValues = {
-  task: '',
-  minutesAmount: MIN_TIME_IN_MINUTES
-};
-
 const NewCycleForm: React.FC = () => {
-  const activeCycle = false;
+  const { register, setValue } = useFormContext();
 
-  const { handleSubmit, register, reset, setValue, watch } = useForm<FormValues>({
-    defaultValues,
-    resolver: zodResolver(schema)
-  });
-  const task = watch('task');
+  const handleBlurMinutesAmount = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const minutesAmount = Number(event.target.value);
+
+      if (minutesAmount > MAX_TIME_IN_MINUTES) setValue('minutesAmount', MAX_TIME_IN_MINUTES);
+      else if (minutesAmount < MIN_TIME_IN_MINUTES) setValue('minutesAmount', MIN_TIME_IN_MINUTES);
+    },
+    [setValue]
+  );
 
   return (
     <FormContainer>
