@@ -4,8 +4,16 @@ import {
   useContext,
   useMemo,
   useState,
-  useCallback
+  useCallback,
+  useReducer
 } from 'react';
+
+import {
+  cyclesReducer,
+  addNewCycleAction,
+  interruptActiveCycleAction,
+  finishActiveCycleAction
+} from 'reducers/cycles';
 
 interface CyclesContextType {
   cycles: Cycle[];
@@ -20,39 +28,25 @@ interface CyclesContextType {
 const CyclesContext = createContext<CyclesContextType>({} as CyclesContextType);
 
 export const CyclesProvider: React.FC<PropsWithChildren> = ({ children }) => {
-  const [cycles, setCycles] = useState<Cycle[]>([]);
-  const [activeCycle, setActiveCycle] = useState<Cycle | null>(null);
+  const [{ cycles, activeCycle }, dispatch] = useReducer(cyclesReducer, {
+    cycles: [],
+    activeCycle: null
+  });
 
   const [secondsPassed, setSecondsPassed] = useState(0);
 
   const addNewCycle = useCallback((newCycle: Cycle) => {
-    setCycles((previousState) => [...previousState, newCycle]);
-
-    setActiveCycle(newCycle);
+    dispatch(addNewCycleAction(newCycle));
     setSecondsPassed(0);
   }, []);
 
   const interruptActiveCycle = useCallback(() => {
-    setCycles((previousState) =>
-      previousState.map((cycle) => ({
-        ...cycle,
-        ...(cycle.id === activeCycle?.id && { interruptedAt: new Date() })
-      }))
-    );
-
-    setActiveCycle(null);
-  }, [activeCycle?.id]);
+    dispatch(interruptActiveCycleAction());
+  }, []);
 
   const finishActiveCycle = useCallback(() => {
-    setCycles((previousState) =>
-      previousState.map((cycle) => ({
-        ...cycle,
-        ...(cycle.id === activeCycle?.id && { finishedAt: new Date() })
-      }))
-    );
-
-    setActiveCycle(null);
-  }, [activeCycle?.id]);
+    dispatch(finishActiveCycleAction());
+  }, []);
 
   const updateSecondsPassed = useCallback((seconds: number) => {
     setSecondsPassed(seconds);
@@ -85,7 +79,7 @@ const useCycles = () => {
   const context = useContext(CyclesContext);
 
   if (!context) {
-    throw new Error('useCycles must be used with in a CycleProvider');
+    throw new Error('useCycles must be used within a CycleProvider');
   }
 
   return context;

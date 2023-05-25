@@ -15,7 +15,8 @@ export default defineConfig({
       styles: path.resolve(__dirname, './src/styles'),
       routes: path.resolve(__dirname, './src/routes'),
       assets: path.resolve(__dirname, './src/assets'),
-      hooks: path.resolve(__dirname, './src/hooks')
+      hooks: path.resolve(__dirname, './src/hooks'),
+      reducers: path.resolve(__dirname, './src/reducers')
     }
   }
 });
