@@ -1,11 +1,11 @@
 /* eslint-disable import/no-duplicates */
+import { useMemo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import ptBR from 'date-fns/locale/pt-BR';
 
 import { useCycles } from 'hooks/index';
 
 import { HistoryContainer, HistoryList, Status } from './styles';
-import { useMemo } from 'react';
 
 type Color = 'yellow' | 'green' | 'red';
 
@@ -42,7 +42,10 @@ const History: React.FC = () => {
 
         return {
           ...cycle,
-          startText: formatDistanceToNow(cycle.startedAt, { addSuffix: true, locale: ptBR }),
+          startText: formatDistanceToNow(new Date(cycle.startedAt), {
+            addSuffix: true,
+            locale: ptBR
+          }),
           status: STATUS_MAP[statusId]
         };
       }),

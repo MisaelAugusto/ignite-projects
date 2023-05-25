@@ -27,8 +27,6 @@ const Countdown: React.FC = () => {
   }, [activeCycle, secondsPassed]);
 
   useEffect(() => {
-    // MOVE IT UP TO UPDATE WHEN USER IS IN HISTORY PAGE
-
     if (activeCycle) document.title = `${minutes}:${seconds}`;
     else document.title = 'Ignite Timer';
   }, [minutes, seconds, activeCycle]);
@@ -39,7 +37,7 @@ const Countdown: React.FC = () => {
     if (activeCycle) {
       interval = window.setInterval(() => {
         const totalSeconds = activeCycle.minutesAmount * 60;
-        const secondsDifference = differenceInSeconds(new Date(), activeCycle.startedAt);
+        const secondsDifference = differenceInSeconds(new Date(), new Date(activeCycle.startedAt));
 
         if (secondsDifference >= totalSeconds) {
           finishActiveCycle();

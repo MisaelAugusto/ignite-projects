@@ -1,3 +1,4 @@
+import { differenceInSeconds } from 'date-fns';
 import {
   type PropsWithChildren,
   createContext,
@@ -5,7 +6,8 @@ import {
   useMemo,
   useState,
   useCallback,
-  useReducer
+  useReducer,
+  useEffect
 } from 'react';
 
 import {
@@ -27,13 +29,33 @@ interface CyclesContextType {
 
 const CyclesContext = createContext<CyclesContextType>({} as CyclesContextType);
 
-export const CyclesProvider: React.FC<PropsWithChildren> = ({ children }) => {
-  const [{ cycles, activeCycle }, dispatch] = useReducer(cyclesReducer, {
-    cycles: [],
-    activeCycle: null
-  });
+const REACT_APP_CYCLES_STATE_KEY = '@ignite-timer:cycles-state-1.0.0';
 
-  const [secondsPassed, setSecondsPassed] = useState(0);
+export const CyclesProvider: React.FC<PropsWithChildren> = ({ children }) => {
+  const [{ cycles, activeCycle }, dispatch] = useReducer(
+    cyclesReducer,
+    {
+      cycles: [],
+      activeCycle: null
+    },
+    (initialState) => {
+      const storedStateAsJSON = localStorage.getItem(REACT_APP_CYCLES_STATE_KEY);
+
+      if (storedStateAsJSON) {
+        return JSON.parse(storedStateAsJSON);
+      }
+
+      return initialState;
+    }
+  );
+
+  const [secondsPassed, setSecondsPassed] = useState(() => {
+    if (activeCycle) {
+      return differenceInSeconds(new Date(), new Date(activeCycle.startedAt));
+    }
+
+    return 0;
+  });
 
   const addNewCycle = useCallback((newCycle: Cycle) => {
     dispatch(addNewCycleAction(newCycle));
@@ -71,6 +93,12 @@ export const CyclesProvider: React.FC<PropsWithChildren> = ({ children }) => {
     finishActiveCycle,
     updateSecondsPassed
   ]);
+
+  useEffect(() => {
+    const stateJSON = JSON.stringify({ cycles, activeCycle });
+
+    localStorage.setItem(REACT_APP_CYCLES_STATE_KEY, stateJSON);
+  }, [cycles, activeCycle]);
 
   return <CyclesContext.Provider value={value}>{children}</CyclesContext.Provider>;
 };
